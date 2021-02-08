@@ -1,2 +1,3 @@
 # LZ77-Demo
-A Demo for LZ77 Data Compression Algorithm.
+A software implementation demo for LZ77 data compression algorithm, complement of the hardware implementation at [bjrjk/HLS-lZ77](https://github.com/bjrjk/HLS-LZ77).
+
