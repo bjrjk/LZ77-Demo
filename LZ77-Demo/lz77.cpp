@@ -4,9 +4,10 @@
 using std::vector;
 using std::min;
 using std::max;
-int LZ77_BUFFER_SIZE = 4;
-int LZ77_WINDOW_SIZE = 8;
+int LZ77_BUFFER_SIZE = 128;
+int LZ77_WINDOW_SIZE = 4096;
 const char LZ77_ESCAPE_CHAR = '\\';
+const char LZ77_SPLIT_CHAR = '\0';
 static inline int putEscapedChar(vector<unsigned char>& arr, unsigned char c, bool ctrl = false) {
 	if (ctrl) {
 		arr.push_back(LZ77_ESCAPE_CHAR);
@@ -53,7 +54,7 @@ static inline void getLongestMatchingPhrase(const vector<unsigned char>& data,
 		winIter++) {
 		for (int bufIter = bufferStart; bufIter < min(bufferStart + LZ77_BUFFER_SIZE, (int)data.size()); bufIter++) {
 			size_t tmpPhrasePos = bufIter - bufferStart;
-			if (winIter + tmpPhrasePos >= min(windowStart + LZ77_WINDOW_SIZE, (int)data.size()))break;
+			if (winIter + (int)tmpPhrasePos >= min(windowStart + LZ77_WINDOW_SIZE, (int)data.size()))break;
 			if (data[winIter + tmpPhrasePos] != data[bufIter])break;
 			size_t tmpPhraseLen = tmpPhrasePos + 1;
 			if (tmpPhraseLen > phraseLength) {
@@ -88,6 +89,7 @@ static void writeCtrlData(vector<unsigned char>& data,
 	vector<unsigned char> phraseStartBytes = sizet2bytes(phraseStart);
 	vector<unsigned char> phraseLengthBytes = sizet2bytes(phraseLength);
 	putEscapedChar(data, LZ77_ESCAPE_CHAR, true);
+	putEscapedChar(data, LZ77_SPLIT_CHAR);
 	data.insert(data.end(), phraseStartBytes.begin(), phraseStartBytes.end());
 	data.insert(data.end(), phraseLengthBytes.begin(), phraseLengthBytes.end());
 	if (firstCExists)putEscapedChar(data, firstC);
@@ -95,6 +97,7 @@ static void writeCtrlData(vector<unsigned char>& data,
 		putEscapedChar(data, LZ77_ESCAPE_CHAR + 1);
 		putEscapedChar(data, LZ77_ESCAPE_CHAR + 1);
 	}
+	putEscapedChar(data, LZ77_SPLIT_CHAR);
 	putEscapedChar(data, LZ77_ESCAPE_CHAR, true);
 }
 static bool readCtrlData(const vector<unsigned char>& data, size_t& i,
@@ -102,6 +105,7 @@ static bool readCtrlData(const vector<unsigned char>& data, size_t& i,
 	bool ctrl;
 	readEscapedChar(data, i, ctrl, false);
 	if (!ctrl) return false;
+	readEscapedChar(data, i, ctrl);
 	readEscapedChar(data, i, ctrl);
 	phraseStart = bytes2sizet(data, i);
 	i += sizeof(size_t);
@@ -112,7 +116,7 @@ static bool readCtrlData(const vector<unsigned char>& data, size_t& i,
 		firstC = readEscapedChar(data, i, ctrl);
 	}
 	else i += 2;
-	i++;
+	i += 2;
 	return true;
 }
 void lz77_compress(const vector<unsigned char>& origin, vector<unsigned char>& compression) {
